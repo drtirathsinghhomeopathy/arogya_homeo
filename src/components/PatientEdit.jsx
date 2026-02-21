@@ -7,6 +7,7 @@ export default function PatientEdit({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [patient, setPatient] = useState(null);
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);

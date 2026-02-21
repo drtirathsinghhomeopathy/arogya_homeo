@@ -7,11 +7,12 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db } from "../auth/firebase";
+import { ROLES } from "../constants/roles";
 
 const AuthApi = {
   // Register new user
-  registerUser: async (email, password, role = "user") => {
+  registerUser: async (email, password, role = ROLES.USER) => {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
@@ -45,10 +46,10 @@ const AuthApi = {
     if (!docSnap.exists()) {
       await setDoc(docRef, {
         email: user.email,
-        role: "user",
+        role: ROLES.USER,
       });
 
-      return { uid: user.uid, email: user.email, role: "user" };
+      return { uid: user.uid, email: user.email, role: ROLES.USER };
     }
 
     return {
@@ -70,10 +71,10 @@ const AuthApi = {
     if (!docSnap.exists()) {
       await setDoc(docRef, {
         email: user.email,
-        role: "user",
+        role: ROLES.USER,
       });
 
-      return { uid: user.uid, email: user.email, role: "user" };
+      return { uid: user.uid, email: user.email, role: ROLES.USER };
     }
 
     return {

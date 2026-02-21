@@ -34,6 +34,7 @@ const Register = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+          <div>Registering user</div>
           <input
             type="password"
             placeholder="Password"

@@ -1,58 +1,40 @@
+// src/App.js
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase";
-
-import Login from "./auth/Login";
-import Register from "./auth/Register";
-
-// Dummy components
-function Admin() {
-  return <h1>Admin Dashboard</h1>;
-}
-
-function Dashboard() {
-  return <h1>User Dashboard</h1>;
-}
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "./auth/firebase";
+import AppRoutes from "./routes/AppRoutes";
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      // 🔐 fetch role from Firestore
+      const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+
+      setUser({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        role: snap.exists() ? snap.data().role : "USER",
+      });
+
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    return unsubscribe;
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>; // Show loading until Firebase initializes
+    return <div className="p-4">Loading…</div>;
   }
 
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route
-          path="/login"
-          element={user ? <Navigate to="/dashboard" /> : <Login />}
-        />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/dashboard" /> : <Register />}
-        />
-        <Route
-          path="/dashboard"
-          element={user ? <Dashboard /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/admin"
-          element={user ? <Admin /> : <Navigate to="/login" />}
-        />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <AppRoutes user={user} />;
 }

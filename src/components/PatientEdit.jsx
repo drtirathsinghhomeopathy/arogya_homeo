@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../auth/firebase";
 
 export default function PatientEdit({ user }) {
@@ -32,7 +37,7 @@ export default function PatientEdit({ user }) {
         return;
       }
 
-      // 🔐 lock record
+      // 🔐 Lock record
       await updateDoc(ref, {
         editing: {
           by: user.uid,
@@ -48,69 +53,97 @@ export default function PatientEdit({ user }) {
     fetchPatient();
 
     return async () => {
-      // 🔓 unlock on exit
+      // 🔓 Unlock on exit
       const ref = doc(db, "patients", id);
       await updateDoc(ref, { editing: null });
     };
   }, [id, user.uid, navigate]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const handleSave = async () => {
     const ref = doc(db, "patients", id);
+
     await updateDoc(ref, {
       ...form,
       editing: null,
       updatedAt: serverTimestamp(),
     });
+
     alert("Patient updated");
     navigate("/patients");
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
+  }
 
   const Field = ({ label, name, type = "text" }) => (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {label}
       </label>
+
       <input
         type={type}
         name={name}
         value={form[name] || ""}
         disabled={!editing}
         onChange={handleChange}
-        className={`w-full rounded-md border px-3 py-2 text-sm
-          ${editing ? "border-gray-300" : "bg-gray-100 cursor-not-allowed"}
-        `}
+        className={`w-full rounded-md border px-3 py-2 text-sm ${
+          editing
+            ? "border-gray-300"
+            : "bg-gray-100 cursor-not-allowed"
+        }`}
       />
     </div>
   );
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold">Patient Details</h1>
+        <h1 className="text-xl font-semibold">
+          Patient Details
+        </h1>
 
-        {!editing ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Edit
-          </button>
-        ) : (
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            Save
-          </button>
-        )}
+        <div className="flex gap-2">
+          {!editing ? (
+            <button
+              onClick={() => setEditing(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Edit
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Save
+              </button>
+
+              <button
+                onClick={() => {
+                  setForm(patient); // 🔙 revert changes
+                  setEditing(false);
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
+      {/* Form Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="Clinic" name="Clinic" />
         <Field label="Patient Name" name="Name" />
@@ -120,35 +153,43 @@ export default function PatientEdit({ user }) {
         <Field label="Date" name="Date" type="date" />
       </div>
 
+      {/* Address */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Address
         </label>
+
         <textarea
           name="Address"
           rows={3}
           value={form.Address || ""}
           disabled={!editing}
           onChange={handleChange}
-          className={`w-full rounded-md border px-3 py-2 text-sm
-            ${editing ? "border-gray-300" : "bg-gray-100 cursor-not-allowed"}
-          `}
+          className={`w-full rounded-md border px-3 py-2 text-sm ${
+            editing
+              ? "border-gray-300"
+              : "bg-gray-100 cursor-not-allowed"
+          }`}
         />
       </div>
 
+      {/* Medical History */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Medical History
         </label>
+
         <textarea
           name="MedicalHistory"
           rows={3}
           value={form.MedicalHistory || ""}
           disabled={!editing}
           onChange={handleChange}
-          className={`w-full rounded-md border px-3 py-2 text-sm
-            ${editing ? "border-gray-300" : "bg-gray-100 cursor-not-allowed"}
-          `}
+          className={`w-full rounded-md border px-3 py-2 text-sm ${
+            editing
+              ? "border-gray-300"
+              : "bg-gray-100 cursor-not-allowed"
+          }`}
         />
       </div>
     </div>

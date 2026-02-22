@@ -1,33 +1,44 @@
-// src/pages/Login.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthApi from "../api/AuthApi";
+import { ROLES } from "../constants/roles";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  // Email/password login
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
       const user = await AuthApi.loginUser(email, password);
-      // Redirect based on role
-      if (user.role === "admin") navigate("/admin");
+      if (user.role === ROLES.ADMIN) navigate("/admin");
       else navigate("/dashboard");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Google login
   const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
     try {
       const user = await AuthApi.loginWithGoogle();
-      if (user.role === "admin") navigate("/admin");
+      if (user.role === ROLES.ADMIN) navigate("/admin");
       else navigate("/dashboard");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,6 +47,7 @@ const Login = () => {
       <div className="p-8 bg-white rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-green-700">Login</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
+
         <form onSubmit={handleLogin} className="space-y-4">
           <input
             type="email"
@@ -44,6 +56,7 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={loading}
           />
           <input
             type="password"
@@ -52,14 +65,21 @@ const Login = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={loading}
           />
-          <button type="submit" className="w-full bg-green-700 text-white p-2 rounded hover:bg-green-800">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-700 text-white p-2 rounded hover:bg-green-800 disabled:opacity-50"
+          >
             Login
           </button>
         </form>
+
         <button
           onClick={handleGoogleLogin}
-          className="w-full mt-4 bg-red-500 text-white p-2 rounded hover:bg-red-600"
+          disabled={loading}
+          className="w-full mt-4 bg-red-500 text-white p-2 rounded hover:bg-red-600 disabled:opacity-50"
         >
           Login with Google
         </button>

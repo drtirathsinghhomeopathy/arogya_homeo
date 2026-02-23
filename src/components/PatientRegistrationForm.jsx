@@ -3,8 +3,12 @@ import { useEffect, useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../auth/firebase";
 import { COLLECTIONS } from "../constants/firestore";
+import { useToast } from "../context/ToastContext";
+import { TOAST_TYPES } from "../constants/toastTypes";
 
-export default function PatientRegistrationForm({ onSubmit }) {
+export default function PatientRegistrationForm() {
+  const { showToast } = useToast();
+
   const [formData, setFormData] = useState({
     P_Id: "",
     Date: "",
@@ -17,9 +21,6 @@ export default function PatientRegistrationForm({ onSubmit }) {
     MedicalHistory: "",
   });
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     setFormData((prev) => ({ ...prev, Date: today }));
@@ -30,35 +31,33 @@ export default function PatientRegistrationForm({ onSubmit }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
-  setSuccess("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!formData.Clinic) {
-    setError("Please select a clinic");
-    return;
-  }
+    if (!formData.Clinic) {
+      showToast("Please select a clinic", TOAST_TYPES.ERROR);
+      return;
+    }
 
-  if (!/^[789][0-9]{9}$/.test(formData.Mobile)) {
-    setError("Mobile number must be 10 digits");
-    return;
-  }
+    if (!/^[789][0-9]{9}$/.test(formData.Mobile)) {
+      showToast("Mobile number must be 10 digits", TOAST_TYPES.ERROR);
+      return;
+    }
 
-  try {
-    await addDoc(collection(db, COLLECTIONS.PATIENTS), {
-      ...formData,
-      createdAt: serverTimestamp(),
-      createdBy: auth.currentUser.uid,
-    });
+    try {
+      await addDoc(collection(db, COLLECTIONS.PATIENTS), {
+        ...formData,
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser.uid,
+      });
 
-    setSuccess("Patient registered successfully");
-    handleReset();
-  } catch (err) {
-    console.error(err);
-    setError("Failed to save patient data");
-  }
-};
+      showToast("Patient registered successfully", TOAST_TYPES.SUCCESS);
+      handleReset();
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save patient data", TOAST_TYPES.ERROR);
+    }
+  };
 
   const handleReset = () => {
     setFormData((prev) => ({
@@ -72,8 +71,6 @@ const handleSubmit = async (e) => {
       Address: "",
       MedicalHistory: "",
     }));
-    setError("");
-    setSuccess("");
   };
 
   return (
@@ -86,18 +83,6 @@ const handleSubmit = async (e) => {
           Patient Registration
         </h2>
 
-        {error && (
-          <div className="bg-red-100 text-red-700 px-4 py-2 rounded">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="bg-green-100 text-green-700 px-4 py-2 rounded">
-            {success}
-          </div>
-        )}
-
         {/* Hidden */}
         <input type="hidden" name="P_Id" value={formData.P_Id} />
         <input type="hidden" name="Date" value={formData.Date} />
@@ -105,33 +90,27 @@ const handleSubmit = async (e) => {
         {/* Clinic + Name */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Clinic
-            </label>
+            <label className="block text-sm font-medium mb-1">Clinic</label>
             <select
               name="Clinic"
               value={formData.Clinic}
               onChange={handleChange}
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-              required
+              className="w-full border rounded-lg px-3 py-2"
             >
               <option value="">Select Clinic</option>
-              <option value="Clinic A">Clinic A</option>
-              <option value="Clinic B">Clinic B</option>
+              <option value="Clinic A">Jagat Farm, Greater Noida</option>
+              <option value="Clinic B">Lajpat Nagar, New Delhi</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name
-            </label>
+            <label className="block text-sm font-medium mb-1">Name</label>
             <input
               type="text"
               name="Name"
               value={formData.Name}
               onChange={handleChange}
-              placeholder="Patient Name"
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border rounded-lg px-3 py-2"
               required
             />
           </div>
@@ -140,7 +119,7 @@ const handleSubmit = async (e) => {
         {/* Gender + Age */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Gender</p>
+            <p className="text-sm font-medium mb-2">Gender</p>
             <div className="flex gap-6">
               <label className="flex items-center gap-2">
                 <input
@@ -149,9 +128,8 @@ const handleSubmit = async (e) => {
                   value="male"
                   checked={formData.Gender === "male"}
                   onChange={handleChange}
-                  className="accent-blue-600"
                 />
-                <span>Male</span>
+                Male
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -160,25 +138,20 @@ const handleSubmit = async (e) => {
                   value="female"
                   checked={formData.Gender === "female"}
                   onChange={handleChange}
-                  className="accent-blue-600"
                 />
-                <span>Female</span>
+                Female
               </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Age
-            </label>
+            <label className="block text-sm font-medium mb-1">Age</label>
             <input
               type="number"
               name="Age"
               value={formData.Age}
               onChange={handleChange}
-              min="0"
-              placeholder="Age"
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border rounded-lg px-3 py-2"
               required
             />
           </div>
@@ -186,16 +159,13 @@ const handleSubmit = async (e) => {
 
         {/* Mobile */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Mobile
-          </label>
+          <label className="block text-sm font-medium mb-1">Mobile</label>
           <input
             type="text"
             name="Mobile"
             value={formData.Mobile}
             onChange={handleChange}
-            placeholder="10 digit mobile number"
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full border rounded-lg px-3 py-2"
             required
           />
         </div>
@@ -203,20 +173,18 @@ const handleSubmit = async (e) => {
         {/* Address + Medical History */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address
-            </label>
+            <label className="block text-sm font-medium mb-1">Address</label>
             <textarea
               name="Address"
               value={formData.Address}
               onChange={handleChange}
               rows="3"
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border rounded-lg px-3 py-2"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1">
               Medical History
             </label>
             <textarea
@@ -224,7 +192,7 @@ const handleSubmit = async (e) => {
               value={formData.MedicalHistory}
               onChange={handleChange}
               rows="3"
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border rounded-lg px-3 py-2"
             />
           </div>
         </div>
@@ -233,14 +201,14 @@ const handleSubmit = async (e) => {
         <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <button
             type="submit"
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
           >
             Submit
           </button>
           <button
             type="button"
             onClick={handleReset}
-            className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg transition"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg"
           >
             Reset
           </button>

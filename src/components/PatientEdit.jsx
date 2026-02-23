@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../auth/firebase";
+import Field from "./Field";
+import { useToast } from "../context/ToastContext";
+import { TOAST_TYPES } from "../constants/toastTypes";
+import { CLINICS } from "../constants/clinics";
 
 export default function PatientEdit({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [patient, setPatient] = useState(null);
   const [form, setForm] = useState({});
@@ -23,21 +23,22 @@ export default function PatientEdit({ user }) {
       const snap = await getDoc(ref);
 
       if (!snap.exists()) {
-        alert("Patient not found");
+        showToast("Patient not found", TOAST_TYPES.ERROR);
         navigate("/dashboard");
         return;
       }
 
       const data = snap.data();
 
-      // 🔒 If someone else is editing
       if (data.editing?.by && data.editing.by !== user.uid) {
-        alert("This record is currently being edited by another admin");
+        showToast(
+          "This record is currently being edited by another admin",
+          TOAST_TYPES.WARNING,
+        );
         navigate("/patients");
         return;
       }
 
-      // 🔐 Lock record
       await updateDoc(ref, {
         editing: {
           by: user.uid,
@@ -53,17 +54,14 @@ export default function PatientEdit({ user }) {
     fetchPatient();
 
     return async () => {
-      // 🔓 Unlock on exit
       const ref = doc(db, "patients", id);
       await updateDoc(ref, { editing: null });
     };
-  }, [id, user.uid, navigate]);
+  }, [id, user.uid, navigate, showToast]);
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
@@ -75,48 +73,23 @@ export default function PatientEdit({ user }) {
       updatedAt: serverTimestamp(),
     });
 
-    alert("Patient updated");
-    navigate("/patients");
+    showToast("Patient updated successfully", TOAST_TYPES.SUCCESS);
+    navigate("/patients"); // ✅ toast survives navigation
   };
 
-  if (loading) {
-    return <div className="p-6">Loading...</div>;
-  }
-
-  const Field = ({ label, name, type = "text" }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-
-      <input
-        type={type}
-        name={name}
-        value={form[name] || ""}
-        disabled={!editing}
-        onChange={handleChange}
-        className={`w-full rounded-md border px-3 py-2 text-sm ${
-          editing
-            ? "border-gray-300"
-            : "bg-gray-100 cursor-not-allowed"
-        }`}
-      />
-    </div>
-  );
+  if (loading) return <div className="p-6">Loading...</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold">
-          Patient Details
-        </h1>
+        <h1 className="text-xl font-semibold">Patient Details</h1>
 
         <div className="flex gap-2">
           {!editing ? (
             <button
               onClick={() => setEditing(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-blue-600 text-white rounded"
             >
               Edit
             </button>
@@ -124,71 +97,122 @@ export default function PatientEdit({ user }) {
             <>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                className="px-4 py-2 bg-green-600 text-white rounded"
               >
                 Save
               </button>
-
               <button
                 onClick={() => {
-                  setForm(patient); // 🔙 revert changes
+                  setForm(patient);
                   setEditing(false);
                 }}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                className="px-4 py-2 bg-gray-500 text-white rounded"
               >
                 Cancel
               </button>
             </>
           )}
+
+          <button
+            onClick={() => navigate(`/patients/${id}/followups`)}
+            className="px-4 py-2 bg-purple-600 text-white rounded"
+          >
+            Follow-Ups
+          </button>
         </div>
       </div>
 
-      {/* Form Grid */}
+      {/* Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Clinic" name="Clinic" />
-        <Field label="Patient Name" name="Name" />
-        <Field label="Gender" name="Gender" />
-        <Field label="Age" name="Age" type="number" />
-        <Field label="Mobile" name="Mobile" />
-        <Field label="Date" name="Date" type="date" />
+        <div>
+          <label className="block text-sm font-medium mb-1">Clinic</label>
+
+          <select
+            name="Clinic"
+            value={form.Clinic || ""}
+            onChange={handleChange}
+            disabled={!editing}
+            className={`w-full rounded border px-3 py-2 ${
+              editing
+                ? "border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                : "bg-gray-100"
+            }`}
+          >
+            <option value="">Select clinic</option>
+            {Object.values(CLINICS).map((clinic) => (
+              <option key={clinic} value={clinic}>
+                {clinic}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Field
+          label="Patient Name"
+          name="Name"
+          value={form.Name || ""}
+          disabled={!editing}
+          onChange={handleChange}
+        />
+        <Field
+          label="Gender"
+          name="Gender"
+          value={form.Gender || ""}
+          disabled={!editing}
+          onChange={handleChange}
+        />
+        <Field
+          label="Age"
+          name="Age"
+          type="number"
+          value={form.Age || ""}
+          disabled={!editing}
+          onChange={handleChange}
+        />
+        <Field
+          label="Mobile"
+          name="Mobile"
+          value={form.Mobile || ""}
+          disabled={!editing}
+          onChange={handleChange}
+        />
+        <Field
+          label="Date"
+          name="Date"
+          type="date"
+          value={form.Date || ""}
+          disabled={!editing}
+          onChange={handleChange}
+        />
       </div>
 
       {/* Address */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Address
-        </label>
-
+        <label className="block text-sm font-medium mb-1">Address</label>
         <textarea
           name="Address"
           rows={3}
           value={form.Address || ""}
           disabled={!editing}
           onChange={handleChange}
-          className={`w-full rounded-md border px-3 py-2 text-sm ${
-            editing
-              ? "border-gray-300"
-              : "bg-gray-100 cursor-not-allowed"
+          className={`w-full border rounded px-3 py-2 ${
+            editing ? "border-gray-300" : "bg-gray-100"
           }`}
         />
       </div>
 
       {/* Medical History */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-1">
           Medical History
         </label>
-
         <textarea
           name="MedicalHistory"
           rows={3}
           value={form.MedicalHistory || ""}
           disabled={!editing}
           onChange={handleChange}
-          className={`w-full rounded-md border px-3 py-2 text-sm ${
-            editing
-              ? "border-gray-300"
-              : "bg-gray-100 cursor-not-allowed"
+          className={`w-full border rounded px-3 py-2 ${
+            editing ? "border-gray-300" : "bg-gray-100"
           }`}
         />
       </div>

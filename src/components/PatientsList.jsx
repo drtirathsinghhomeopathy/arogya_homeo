@@ -17,7 +17,7 @@ export default function PatientsList() {
   async function fetchPatients() {
     const q = query(
       collection(db, COLLECTIONS.PATIENTS),
-      orderBy("createdAt", "desc"),
+      orderBy("createdAt", "desc")
     );
 
     const snap = await getDocs(q);
@@ -25,29 +25,59 @@ export default function PatientsList() {
   }
 
   const filtered = patients.filter((p) =>
-    `${p.Name} ${p.Mobile}`.toLowerCase().includes(search.toLowerCase()),
+    `${p.Name} ${p.Mobile}`.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-4">Patients</h1>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Patients
+          <span className="ml-2 text-sm text-gray-500 font-normal">
+            ({filtered.length})
+          </span>
+        </h1>
 
-      <input
-        placeholder="Search by name or mobile"
-        className="border p-2 rounded w-full mb-4"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+        <div className="relative w-full sm:w-80">
+          <input
+            type="text"
+            placeholder="Search by name or mobile"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200
+              bg-white shadow-sm
+              focus:outline-none focus:ring-2 focus:ring-green-500
+              transition"
+          />
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full border">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border">Age</th>
-              <th className="p-2 border">Mobile</th>
-              <th className="p-2 border">Clinic</th>
-              <th className="p-2 border">Actions</th>
+          {/* Search icon */}
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            🔍
+          </span>
+
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2
+                text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border overflow-hidden">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-50 sticky top-0 z-10">
+            <tr className="text-gray-600">
+              <th className="p-4 text-left font-medium">Patient</th>
+              <th className="p-4 text-left font-medium">Age</th>
+              <th className="p-4 text-left font-medium">Mobile</th>
+              <th className="p-4 text-left font-medium">Clinic</th>
+              <th className="p-4 text-right font-medium">Action</th>
             </tr>
           </thead>
 
@@ -56,23 +86,32 @@ export default function PatientsList() {
               const locked = p.editingBy && p.editingBy !== uid;
 
               return (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="p-2 border">{p.Name}</td>
-                  <td className="p-2 border">{p.Age}</td>
-                  <td className="p-2 border">{p.Mobile}</td>
-                  <td className="p-2 border">{p.Clinic}</td>
-
-                  <td className="p-2 border space-x-2">
+                <tr
+                  key={p.id}
+                  className="border-t hover:bg-gray-50 transition"
+                >
+                  <td className="p-4 font-medium text-gray-800">
+                    {p.Name}
+                  </td>
+                  <td className="p-4">{p.Age}</td>
+                  <td className="p-4">{p.Mobile}</td>
+                  <td className="p-4">{p.Clinic}</td>
+                  <td className="p-4 text-right">
                     {locked ? (
-                      <span className="text-gray-400 text-sm">Locked</span>
+                      <span className="inline-flex items-center gap-1
+                        px-3 py-1 rounded-full text-xs
+                        bg-gray-100 text-gray-500">
+                        🔒 Locked
+                      </span>
                     ) : (
                       <Link
                         to={`/patients/${p.id}/edit`}
-                        className="text-green-600 underline"
+                        className="inline-flex items-center gap-1
+                          px-4 py-1.5 rounded-full text-sm
+                          bg-green-600 text-white
+                          hover:bg-green-700 transition"
                       >
-                        <button className="text-blue-600 hover:text-blue-800">
-                          📝
-                        </button>
+                        Edit →
                       </Link>
                     )}
                   </td>
@@ -81,11 +120,52 @@ export default function PatientsList() {
             })}
           </tbody>
         </table>
-
-        {filtered.length === 0 && (
-          <p className="text-center mt-4 text-gray-500">No patients found</p>
-        )}
       </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {filtered.map((p) => {
+          const locked = p.editingBy && p.editingBy !== uid;
+
+          return (
+            <div
+              key={p.id}
+              className="bg-white rounded-xl border shadow-sm p-4"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="font-semibold text-lg">{p.Name}</h2>
+                  <p className="text-sm text-gray-500">{p.Clinic}</p>
+                </div>
+
+                {locked ? (
+                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
+                    🔒 Locked
+                  </span>
+                ) : (
+                  <Link
+                    to={`/patients/${p.id}/edit`}
+                    className="text-sm text-green-600 font-medium"
+                  >
+                    Edit →
+                  </Link>
+                )}
+              </div>
+
+              <div className="mt-3 text-sm text-gray-600 space-y-1">
+                <p><span className="font-medium">Age:</span> {p.Age}</p>
+                <p><span className="font-medium">Mobile:</span> {p.Mobile}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="text-center mt-10 text-gray-500">
+          No patients found
+        </p>
+      )}
     </div>
   );
 }

@@ -2,18 +2,20 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "../components/Dashboard";
 import Login from "../auth/Login";
-import Register from "../auth/Register";
 import Admin from "../components/Admin";
 import PatientRegistrationForm from "../components/PatientRegistrationForm";
 import { ROLES } from "../constants/roles";
 import PatientsList from "../components/PatientsList";
 import PatientEdit from "../components/PatientEdit";
+import FollowUpPage from "../components/FollowUpPage";
+import { ToastProvider } from "../context/ToastContext";
 
 export default function AppRoutes({ user }) {
-  const role = user?.role; // ✅ SAFE
+  const role = user?.role;
 
   return (
     <BrowserRouter>
+    <ToastProvider>
       <Routes>
         {/* Public */}
         <Route path="/" element={<Navigate to="/login" />} />
@@ -21,10 +23,7 @@ export default function AppRoutes({ user }) {
           path="/login"
           element={user ? <Navigate to="/dashboard" /> : <Login />}
         />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/dashboard" /> : <Register />}
-        />
+        
 
         {/* Protected */}
         <Route
@@ -59,10 +58,16 @@ export default function AppRoutes({ user }) {
         />
 
         <Route
-  path="/patients/:id/edit"
-  element={user ? <PatientEdit user={user} /> : <Navigate to="/login" />}
-/>
+          path="/patients/:id/edit"
+          element={
+            user ? <PatientEdit user={user} /> : <Navigate to="/login" />
+          }
+        />
+
+        <Route path="/patients/:id/followups" element={<FollowUpPage />} />
+
       </Routes>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

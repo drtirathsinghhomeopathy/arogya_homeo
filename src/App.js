@@ -1,23 +1,23 @@
-// src/App.js
+// src/App.jsx
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./auth/firebase";
 import AppRoutes from "./routes/AppRoutes";
+import Navbar from "./components/Navbar";
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
         setLoading(false);
         return;
       }
 
-      // 🔐 fetch role from Firestore
       const snap = await getDoc(doc(db, "users", firebaseUser.uid));
 
       setUser({
@@ -29,12 +29,15 @@ export default function App() {
       setLoading(false);
     });
 
-    return unsubscribe;
+    return unsub;
   }, []);
 
-  if (loading) {
-    return <div className="p-4">Loading…</div>;
-  }
+  if (loading) return <div className="p-4">Loading…</div>;
 
-  return <AppRoutes user={user} />;
+  return (
+    <>
+      {user && <Navbar user={user} />}
+      <AppRoutes user={user} />
+    </>
+  );
 }

@@ -14,7 +14,6 @@ export default function AppRoutes({ user }) {
   const role = user?.role;
 
   return (
-    <BrowserRouter>
     <ToastProvider>
       <Routes>
         {/* Public */}
@@ -68,6 +67,5 @@ export default function AppRoutes({ user }) {
 
       </Routes>
       </ToastProvider>
-    </BrowserRouter>
   );
 }

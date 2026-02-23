@@ -8,9 +8,7 @@ export default function Dashboard({ role }) {
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Dashboard
-        </h1>
+        
 
         <span
           className={`inline-flex px-3 py-1 rounded-full text-sm font-medium w-fit ${

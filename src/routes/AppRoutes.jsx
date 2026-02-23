@@ -1,5 +1,4 @@
 // src/routes/AppRoutes.jsx
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "../components/Dashboard";
 import Login from "../auth/Login";
 import Admin from "../components/Admin";
@@ -9,6 +8,7 @@ import PatientsList from "../components/PatientsList";
 import PatientEdit from "../components/PatientEdit";
 import FollowUpPage from "../components/FollowUpPage";
 import { ToastProvider } from "../context/ToastContext";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 export default function AppRoutes({ user }) {
   const role = user?.role;

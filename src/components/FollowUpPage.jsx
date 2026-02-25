@@ -167,12 +167,53 @@ export default function FollowUpPage() {
       <div ref={formRef} className="border rounded p-6 bg-gray-50">
         <h2 className="text-lg font-semibold mb-4">Add New Follow-Up</h2>
 
-        <Field label="Presenting Complains" name="presentingComplains" value={form.presentingComplains} onChange={handleChange} />
-        <Field label="Investigation" name="investigation" value={form.investigation} onChange={handleChange} />
-        <Field label="Medical History" name="medicalHistory" type="textarea" rows={3} value={form.medicalHistory} onChange={handleChange} />
-        <Field label="Medicine" name="medicine" type="textarea" rows={3} value={form.medicine} onChange={handleChange} />
-        <Field label="Bill Amount" name="bill" type="number" value={form.bill} onChange={handleChange} />
-        <Field label="Paid Amount" name="paid" type="number" value={form.paid} onChange={handleChange} />
+        <Field
+  label="Presenting Complains"
+  name="presentingComplains"
+  value={form.presentingComplains}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Investigation"
+  name="investigation"
+  value={form.investigation}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Medical History"
+  name="medicalHistory"
+  as="textarea"
+  rows={3}
+  value={form.medicalHistory}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Medicine"
+  name="medicine"
+  as="textarea"
+  rows={3}
+  value={form.medicine}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Bill Amount"
+  name="bill"
+  type="number"
+  value={form.bill}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Paid Amount"
+  name="paid"
+  type="number"
+  value={form.paid}
+  onChange={handleChange}
+/>
 
         <button
           onClick={handleSave}

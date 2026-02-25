@@ -146,43 +146,54 @@ export default function PatientEdit({ user }) {
             ))}
           </select>
         </div>
-        <Field
-          label="Patient Name"
-          name="Name"
-          value={form.Name || ""}
-          disabled={!editing}
-          onChange={handleChange}
-        />
-        <Field
-          label="Gender"
-          name="Gender"
-          value={form.Gender || ""}
-          disabled={!editing}
-          onChange={handleChange}
-        />
-        <Field
-          label="Age"
-          name="Age"
-          type="number"
-          value={form.Age || ""}
-          disabled={!editing}
-          onChange={handleChange}
-        />
-        <Field
-          label="Mobile"
-          name="Mobile"
-          value={form.Mobile || ""}
-          disabled={!editing}
-          onChange={handleChange}
-        />
-        <Field
-          label="Date"
-          name="Date"
-          type="date"
-          value={form.Date || ""}
-          disabled={!editing}
-          onChange={handleChange}
-        />
+       <Field
+  label="Patient Name"
+  name="Name"
+  value={form.Name || ""}
+  disabled={!editing}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Gender"
+  name="Gender"
+  as="select"
+  options={[
+    { label: "Male", value: "Male" },
+    { label: "Female", value: "Female" },
+    { label: "Other", value: "Other" },
+  ]}
+  value={form.Gender || ""}
+  disabled={!editing}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Age"
+  name="Age"
+  type="number"
+  value={form.Age || ""}
+  disabled={!editing}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Mobile"
+  name="Mobile"
+  type="tel"
+  value={form.Mobile || ""}
+  disabled={!editing}
+  onChange={handleChange}
+/>
+
+<Field
+  label="Date"
+  name="Date"
+  type="date"
+  value={form.Date || ""}
+  disabled={!editing}
+  onChange={handleChange}
+/>
       </div>
 
       {/* Address */}

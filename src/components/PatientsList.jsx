@@ -6,14 +6,59 @@ import { auth, db } from "../auth/firebase";
 
 export default function PatientsList() {
   const [patients, setPatients] = useState([]);
+  const [patientMeta, setPatientMeta] = useState({});
   const [search, setSearch] = useState("");
 
   const uid = auth.currentUser?.uid;
 
   useEffect(() => {
     fetchPatients();
+    fetchBalances();
   }, []);
 
+  /* 🔹 Balance color helper (SINGLE SOURCE OF TRUTH) */
+  const getBalanceClass = (balance) => {
+  if (balance < 0) return "text-red-600";     // DUE (minus)
+  if (balance > 0) return "text-green-600";  // ADVANCE (plus)
+  return "text-gray-500";                    // SETTLED
+};
+  /* 🔹 Fetch balances from followups */
+async function fetchBalances() {
+  const snap = await getDocs(collection(db, "followups"));
+  const metaMap = {};
+
+  snap.docs.forEach((doc) => {
+    const f = doc.data();
+    const patientId = f.patientId;
+
+    const bill = Number(f.bill || 0);
+    const paid = Number(f.paid || 0);
+    const createdAt = f.createdAt?.toDate?.() || null;
+
+    if (!metaMap[patientId]) {
+      metaMap[patientId] = {
+        balance: 0,
+        lastVisit: null,
+      };
+    }
+
+    // ✅ Correct accounting
+    metaMap[patientId].balance += paid - bill;
+
+    // ✅ Latest visit date
+    if (
+      createdAt &&
+      (!metaMap[patientId].lastVisit ||
+        createdAt > metaMap[patientId].lastVisit)
+    ) {
+      metaMap[patientId].lastVisit = createdAt;
+    }
+  });
+
+  setPatientMeta(metaMap);
+}
+
+  /* 🔹 Fetch patients */
   async function fetchPatients() {
     const q = query(
       collection(db, COLLECTIONS.PATIENTS),
@@ -51,7 +96,6 @@ export default function PatientsList() {
               transition"
           />
 
-          {/* Search icon */}
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             🔍
           </span>
@@ -77,6 +121,8 @@ export default function PatientsList() {
               <th className="p-4 text-left font-medium">Age</th>
               <th className="p-4 text-left font-medium">Mobile</th>
               <th className="p-4 text-left font-medium">Clinic</th>
+              <th className="p-4 text-right font-medium">Balance</th>
+              <th className="p-4 text-left font-medium">Last Visit</th>
               <th className="p-4 text-right font-medium">Action</th>
             </tr>
           </thead>
@@ -84,6 +130,9 @@ export default function PatientsList() {
           <tbody>
             {filtered.map((p) => {
               const locked = p.editingBy && p.editingBy !== uid;
+              const balance = patientMeta[p.id]?.balance || 0;
+              const lastVisit = patientMeta[p.id]?.lastVisit;
+              const balanceClass = getBalanceClass(balance);
 
               return (
                 <tr
@@ -96,6 +145,14 @@ export default function PatientsList() {
                   <td className="p-4">{p.Age}</td>
                   <td className="p-4">{p.Mobile}</td>
                   <td className="p-4">{p.Clinic}</td>
+                  <td className={`p-4 text-right font-semibold ${balanceClass}`}>
+                    ₹{Math.abs(balance)}
+                  </td>
+                  <td className="p-4 text-gray-600">
+  {lastVisit
+    ? lastVisit.toLocaleDateString()
+    : "—"}
+</td>
                   <td className="p-4 text-right">
                     {locked ? (
                       <span className="inline-flex items-center gap-1
@@ -123,42 +180,56 @@ export default function PatientsList() {
       </div>
 
       {/* Mobile Cards */}
+      
       <div className="md:hidden space-y-4">
         {filtered.map((p) => {
-          const locked = p.editingBy && p.editingBy !== uid;
+  const locked = p.editingBy && p.editingBy !== uid;
 
-          return (
-            <div
-              key={p.id}
-              className="bg-white rounded-xl border shadow-sm p-4"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="font-semibold text-lg">{p.Name}</h2>
-                  <p className="text-sm text-gray-500">{p.Clinic}</p>
-                </div>
+  const balance = patientMeta[p.id]?.balance || 0;
+  const lastVisit = patientMeta[p.id]?.lastVisit;
+  const balanceClass = getBalanceClass(balance);
 
-                {locked ? (
-                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
-                    🔒 Locked
-                  </span>
-                ) : (
-                  <Link
-                    to={`/patients/${p.id}/edit`}
-                    className="text-sm text-green-600 font-medium"
-                  >
-                    Edit →
-                  </Link>
-                )}
-              </div>
+  return (
+    <div
+      key={p.id}
+      className="bg-white rounded-xl border shadow-sm p-4"
+    >
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="font-semibold text-lg">{p.Name}</h2>
+          <p className="text-sm text-gray-500">{p.Clinic}</p>
+        </div>
 
-              <div className="mt-3 text-sm text-gray-600 space-y-1">
-                <p><span className="font-medium">Age:</span> {p.Age}</p>
-                <p><span className="font-medium">Mobile:</span> {p.Mobile}</p>
-              </div>
-            </div>
-          );
-        })}
+        {locked ? (
+          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
+            🔒 Locked
+          </span>
+        ) : (
+          <Link
+            to={`/patients/${p.id}/edit`}
+            className="text-sm text-green-600 font-medium"
+          >
+            Edit →
+          </Link>
+        )}
+      </div>
+
+      <div className="mt-3 text-sm text-gray-600 space-y-1">
+        <p><span className="font-medium">Age:</span> {p.Age}</p>
+        <p><span className="font-medium">Mobile:</span> {p.Mobile}</p>
+
+        <p>
+          <span className="font-medium">Last Visit:</span>{" "}
+          {lastVisit ? lastVisit.toLocaleDateString() : "—"}
+        </p>
+
+        <p className={`font-semibold ${balanceClass}`}>
+          Balance: ₹{Math.abs(balance)}
+        </p>
+      </div>
+    </div>
+  );
+})}
       </div>
 
       {filtered.length === 0 && (

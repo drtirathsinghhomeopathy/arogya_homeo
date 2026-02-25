@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   collection,
   query,
@@ -44,7 +44,7 @@ function Field({ label, name, type = "text", rows = 1, value, onChange }) {
 export default function FollowUpPage() {
   const { id: patientId } = useParams();
   const { showToast } = useToast();
-
+  const navigate = useNavigate();
   const formRef = useRef(null);
 
   const [followups, setFollowups] = useState([]);
@@ -70,18 +70,17 @@ export default function FollowUpPage() {
       );
 
       const snap = await getDocs(q);
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setFollowups(data);
 
       const balance = data.reduce(
-        (sum, f) => sum + (Number(f.bill) - Number(f.paid)),
-        0
-      );
-      setTotalBalance(balance);
+  (sum, f) => sum + (Number(f.paid || 0) - Number(f.bill || 0)),
+  0
+);
 
+      setTotalBalance(balance);
       setLoading(false);
 
-      // 🔽 Auto-scroll if no followups
       if (data.length === 0) {
         setTimeout(() => {
           formRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -92,10 +91,10 @@ export default function FollowUpPage() {
     fetchFollowUps();
   }, [patientId]);
 
-  /* 🔹 Input handler (NO focus loss) */
+  /* 🔹 Input handler */
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       [name]: name === "bill" || name === "paid" ? Number(value) : value,
     }));
@@ -110,14 +109,18 @@ export default function FollowUpPage() {
     });
 
     showToast("Follow-up saved successfully", TOAST_TYPES.SUCCESS);
-
-    window.location.reload();
+    navigate(`/patients/${patientId}/edit`);
   };
 
   if (loading) return <div className="p-6">Loading...</div>;
 
-  const balanceColor =
-    totalBalance > 0 ? "text-red-600" : "text-green-600";
+  /* ✅ CORRECT COLOR LOGIC */
+  const balanceClass =
+    totalBalance < 0
+      ? "text-red-600"     // DUE
+      : totalBalance > 0
+      ? "text-green-600"   // ADVANCE
+      : "text-gray-500";   // SETTLED
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
@@ -138,7 +141,7 @@ export default function FollowUpPage() {
               </tr>
             </thead>
             <tbody>
-              {followups.map(f => (
+              {followups.map((f) => (
                 <tr key={f.id}>
                   <td className="border p-2">
                     {f.createdAt?.toDate().toLocaleDateString()}
@@ -146,8 +149,8 @@ export default function FollowUpPage() {
                   <td className="border p-2">{f.presentingComplains}</td>
                   <td className="border p-2">{f.investigation}</td>
                   <td className="border p-2">{f.medicine}</td>
-                  <td className="border p-2">{f.bill}</td>
-                  <td className="border p-2">{f.paid}</td>
+                  <td className="border p-2">₹{f.bill}</td>
+                  <td className="border p-2">₹{f.paid}</td>
                 </tr>
               ))}
             </tbody>
@@ -156,61 +159,20 @@ export default function FollowUpPage() {
       )}
 
       {/* 🔹 Balance */}
-      <div className={`font-semibold ${balanceColor}`}>
-        Balance: {totalBalance > 0 ? `+${totalBalance}` : totalBalance}
+      <div className={`font-semibold text-lg ${balanceClass}`}>
+        Balance: ₹{Math.abs(totalBalance)}
       </div>
 
       {/* 🔹 New Follow-Up Form */}
       <div ref={formRef} className="border rounded p-6 bg-gray-50">
         <h2 className="text-lg font-semibold mb-4">Add New Follow-Up</h2>
 
-        <Field
-          label="Presenting Complains"
-          name="presentingComplains"
-          value={form.presentingComplains}
-          onChange={handleChange}
-        />
-
-        <Field
-          label="Investigation"
-          name="investigation"
-          value={form.investigation}
-          onChange={handleChange}
-        />
-
-        <Field
-          label="Medical History"
-          name="medicalHistory"
-          type="textarea"
-          rows={3}
-          value={form.medicalHistory}
-          onChange={handleChange}
-        />
-
-        <Field
-          label="Medicine"
-          name="medicine"
-          type="textarea"
-          rows={3}
-          value={form.medicine}
-          onChange={handleChange}
-        />
-
-        <Field
-          label="Bill Amount"
-          name="bill"
-          type="number"
-          value={form.bill}
-          onChange={handleChange}
-        />
-
-        <Field
-          label="Paid Amount"
-          name="paid"
-          type="number"
-          value={form.paid}
-          onChange={handleChange}
-        />
+        <Field label="Presenting Complains" name="presentingComplains" value={form.presentingComplains} onChange={handleChange} />
+        <Field label="Investigation" name="investigation" value={form.investigation} onChange={handleChange} />
+        <Field label="Medical History" name="medicalHistory" type="textarea" rows={3} value={form.medicalHistory} onChange={handleChange} />
+        <Field label="Medicine" name="medicine" type="textarea" rows={3} value={form.medicine} onChange={handleChange} />
+        <Field label="Bill Amount" name="bill" type="number" value={form.bill} onChange={handleChange} />
+        <Field label="Paid Amount" name="paid" type="number" value={form.paid} onChange={handleChange} />
 
         <button
           onClick={handleSave}

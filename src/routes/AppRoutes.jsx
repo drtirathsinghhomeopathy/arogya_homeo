@@ -6,7 +6,6 @@ import PatientRegistrationForm from "../components/PatientRegistrationForm";
 import { ROLES } from "../constants/roles";
 import PatientsList from "../components/PatientsList";
 import PatientEdit from "../components/PatientEdit";
-import FollowUpPage from "../components/FollowUpPage";
 import { ToastProvider } from "../context/ToastContext";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -63,7 +62,6 @@ export default function AppRoutes({ user }) {
           }
         />
 
-        <Route path="/patients/:id/followups" element={<FollowUpPage />} />
 
       </Routes>
       </ToastProvider>

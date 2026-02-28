@@ -1,11 +1,21 @@
+// src/components/PatientEdit.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+} from "firebase/firestore";
 import { db } from "../auth/firebase";
 import Field from "./Field";
 import { useToast } from "../context/ToastContext";
 import { TOAST_TYPES } from "../constants/toastTypes";
-import { CLINICS } from "../constants/clinics";
 
 export default function PatientEdit({ user }) {
   const { id } = useParams();
@@ -16,6 +26,20 @@ export default function PatientEdit({ user }) {
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [followups, setFollowups] = useState([]);
+  const [totalBalance, setTotalBalance] = useState(0);
+
+  const [showFollowupModal, setShowFollowupModal] = useState(false);
+
+  const [followForm, setFollowForm] = useState({
+    presentingComplains: "",
+    investigation: "",
+    medicalHistory: "",
+    medicine: "",
+    bill: "",
+    paid: "",
+  });
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -33,21 +57,21 @@ export default function PatientEdit({ user }) {
       if (data.editing?.by && data.editing.by !== user.uid) {
         showToast(
           "This record is currently being edited by another admin",
-          TOAST_TYPES.WARNING,
+          TOAST_TYPES.WARNING
         );
         navigate("/patients");
         return;
       }
 
       await updateDoc(ref, {
-        editing: {
-          by: user.uid,
-          at: serverTimestamp(),
-        },
+        editing: { by: user.uid, at: serverTimestamp() },
       });
 
       setPatient(data);
       setForm(data);
+
+      await loadFollowups();
+
       setLoading(false);
     };
 
@@ -57,7 +81,37 @@ export default function PatientEdit({ user }) {
       const ref = doc(db, "patients", id);
       await updateDoc(ref, { editing: null });
     };
-  }, [id, user.uid, navigate, showToast]);
+  }, [id]);
+
+  const loadFollowups = async () => {
+    const q = query(
+      collection(db, "followups"),
+      where("patientId", "==", id)
+    );
+
+    const snapFollow = await getDocs(q);
+
+    const followData = snapFollow.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+
+    // Sort latest first
+    followData.sort(
+      (a, b) =>
+        (b.createdAt?.toDate() || 0) -
+        (a.createdAt?.toDate() || 0)
+    );
+
+    setFollowups(followData);
+
+    const balance = followData.reduce(
+      (sum, f) => sum + (Number(f.paid || 0) - Number(f.bill || 0)),
+      0
+    );
+
+    setTotalBalance(balance);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -74,18 +128,56 @@ export default function PatientEdit({ user }) {
     });
 
     showToast("Patient updated successfully", TOAST_TYPES.SUCCESS);
-    navigate("/patients"); // ✅ toast survives navigation
+    navigate("/patients");
+  };
+
+  const handleFollowChange = (e) => {
+    const { name, value } = e.target;
+    setFollowForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddFollowup = async () => {
+    await addDoc(collection(db, "followups"), {
+      patientId: id,
+      patientName: form.Name,
+      ...followForm,
+      bill: Number(followForm.bill || 0),
+      paid: Number(followForm.paid || 0),
+      createdAt: serverTimestamp(),
+    });
+
+    showToast("Follow-up added", TOAST_TYPES.SUCCESS);
+
+    setShowFollowupModal(false);
+
+    setFollowForm({
+      presentingComplains: "",
+      investigation: "",
+      medicalHistory: "",
+      medicine: "",
+      bill: "",
+      paid: "",
+    });
+
+    await loadFollowups();
   };
 
   if (loading) return <div className="p-6">Loading...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-semibold">Patient Details</h1>
 
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowFollowupModal(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded"
+          >
+            Add Follow-Up
+          </button>
+
           {!editing ? (
             <button
               onClick={() => setEditing(true)}
@@ -112,121 +204,139 @@ export default function PatientEdit({ user }) {
               </button>
             </>
           )}
-
-          <button
-            onClick={() => navigate(`/patients/${id}/followups`)}
-            className="px-4 py-2 bg-purple-600 text-white rounded"
-          >
-            Follow-Ups
-          </button>
         </div>
       </div>
 
-      {/* Form */}
+      {/* Patient Info (UNCHANGED STRUCTURE) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Clinic</label>
+  <Field
+    label="Patient Name"
+    name="Name"
+    value={form.Name || ""}
+    disabled={!editing}
+    onChange={handleChange}
+  />
 
-          <select
-            name="Clinic"
-            value={form.Clinic || ""}
-            onChange={handleChange}
-            disabled={!editing}
-            className={`w-full rounded border px-3 py-2 ${
-              editing
-                ? "border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                : "bg-gray-100"
+  <Field
+    label="Age"
+    name="Age"
+    type="number"
+    value={form.Age || ""}
+    disabled={!editing}
+    onChange={handleChange}
+  />
+
+  <Field
+    label="Mobile"
+    name="Mobile"
+    value={form.Mobile || ""}
+    disabled={!editing}
+    onChange={handleChange}
+  />
+
+  <Field
+    label="Clinic"
+    name="Clinic"
+    value={form.Clinic || ""}
+    disabled={!editing}
+    onChange={handleChange}
+  />
+
+  <Field
+    label="Address"
+    name="Address"
+    as="textarea"
+    rows={2}
+    value={form.Address || ""}
+    disabled={!editing}
+    onChange={handleChange}
+  />
+
+  {/* ✅ Medical History Added Properly */}
+  <Field
+    label="Medical History"
+    name="MedicalHistory"
+    as="textarea"
+    rows={3}
+    value={form.MedicalHistory || ""}
+    disabled={!editing}
+    onChange={handleChange}
+  />
+</div>
+
+      {/* Follow-Up Table */}
+      {followups.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold mb-4">Patient Follow-Ups</h2>
+
+          <table className="w-full border border-gray-300 text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="border p-2">Date</th>
+                <th className="border p-2">Complains</th>
+                <th className="border p-2">Investigation</th>
+                <th className="border p-2">Medicine</th>
+                <th className="border p-2">Bill</th>
+                <th className="border p-2">Paid</th>
+              </tr>
+            </thead>
+            <tbody>
+              {followups.map((f) => (
+                <tr key={f.id}>
+                  <td className="border p-2">
+                    {f.createdAt?.toDate().toLocaleDateString()}
+                  </td>
+                  <td className="border p-2">{f.presentingComplains}</td>
+                  <td className="border p-2">{f.investigation}</td>
+                  <td className="border p-2">{f.medicine}</td>
+                  <td className="border p-2">₹{f.bill}</td>
+                  <td className="border p-2">₹{f.paid}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div
+            className={`mt-4 font-semibold text-lg ${
+              totalBalance < 0
+                ? "text-red-600"
+                : totalBalance > 0
+                ? "text-green-600"
+                : "text-gray-500"
             }`}
           >
-            <option value="">Select clinic</option>
-            {Object.values(CLINICS).map((clinic) => (
-              <option key={clinic} value={clinic}>
-                {clinic}
-              </option>
-            ))}
-          </select>
+            Balance: ₹{Math.abs(totalBalance)}
+          </div>
         </div>
-       <Field
-  label="Patient Name"
-  name="Name"
-  value={form.Name || ""}
-  disabled={!editing}
-  onChange={handleChange}
-/>
+      )}
 
-<Field
-  label="Gender"
-  name="Gender"
-  as="select"
-  options={[
-    { label: "Male", value: "Male" },
-    { label: "Female", value: "Female" },
-    { label: "Other", value: "Other" },
-  ]}
-  value={form.Gender || ""}
-  disabled={!editing}
-  onChange={handleChange}
-/>
+      {/* Follow-Up Modal */}
+      {showFollowupModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-3xl rounded-lg p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Add New Follow-Up</h2>
 
-<Field
-  label="Age"
-  name="Age"
-  type="number"
-  value={form.Age || ""}
-  disabled={!editing}
-  onChange={handleChange}
-/>
+            <Field label="Presenting Complains" name="presentingComplains" value={followForm.presentingComplains} onChange={handleFollowChange} />
+            <Field label="Investigation" name="investigation" value={followForm.investigation} onChange={handleFollowChange} />
+            <Field label="Medical History" name="medicalHistory" as="textarea" rows={3} value={followForm.medicalHistory} onChange={handleFollowChange} />
+            <Field label="Medicine" name="medicine" as="textarea" rows={3} value={followForm.medicine} onChange={handleFollowChange} />
 
-<Field
-  label="Mobile"
-  name="Mobile"
-  type="tel"
-  value={form.Mobile || ""}
-  disabled={!editing}
-  onChange={handleChange}
-/>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Bill Amount" name="bill" type="number" value={followForm.bill} onChange={handleFollowChange} />
+              <Field label="Paid Amount" name="paid" type="number" value={followForm.paid} onChange={handleFollowChange} />
+            </div>
 
-<Field
-  label="Date"
-  name="Date"
-  type="date"
-  value={form.Date || ""}
-  disabled={!editing}
-  onChange={handleChange}
-/>
-      </div>
-
-      {/* Address */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Address</label>
-        <textarea
-          name="Address"
-          rows={3}
-          value={form.Address || ""}
-          disabled={!editing}
-          onChange={handleChange}
-          className={`w-full border rounded px-3 py-2 ${
-            editing ? "border-gray-300" : "bg-gray-100"
-          }`}
-        />
-      </div>
-
-      {/* Medical History */}
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          Medical History
-        </label>
-        <textarea
-          name="MedicalHistory"
-          rows={3}
-          value={form.MedicalHistory || ""}
-          disabled={!editing}
-          onChange={handleChange}
-          className={`w-full border rounded px-3 py-2 ${
-            editing ? "border-gray-300" : "bg-gray-100"
-          }`}
-        />
-      </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <button onClick={() => setShowFollowupModal(false)} className="px-4 py-2 bg-gray-500 text-white rounded">
+                Cancel
+              </button>
+              <button onClick={handleAddFollowup} className="px-4 py-2 bg-green-600 text-white rounded">
+                Save Follow-Up
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

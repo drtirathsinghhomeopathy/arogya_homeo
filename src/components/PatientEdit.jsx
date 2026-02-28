@@ -42,46 +42,72 @@ export default function PatientEdit({ user }) {
   });
 
   useEffect(() => {
-    const fetchPatient = async () => {
-      const ref = doc(db, "patients", id);
-      const snap = await getDoc(ref);
+  const fetchPatient = async () => {
+    const ref = doc(db, "patients", id);
+    const snap = await getDoc(ref);
 
-      if (!snap.exists()) {
-        showToast("Patient not found", TOAST_TYPES.ERROR);
-        navigate("/dashboard");
-        return;
-      }
+    if (!snap.exists()) {
+      showToast("Patient not found", TOAST_TYPES.ERROR);
+      navigate("/dashboard");
+      return;
+    }
 
-      const data = snap.data();
+    const data = snap.data();
 
-      if (data.editing?.by && data.editing.by !== user.uid) {
-        showToast(
-          "This record is currently being edited by another admin",
-          TOAST_TYPES.WARNING
-        );
-        navigate("/patients");
-        return;
-      }
+    if (data.editing?.by && data.editing.by !== user.uid) {
+      showToast(
+        "This record is currently being edited by another admin",
+        TOAST_TYPES.WARNING
+      );
+      navigate("/patients");
+      return;
+    }
 
-      await updateDoc(ref, {
-        editing: { by: user.uid, at: serverTimestamp() },
-      });
+    await updateDoc(ref, {
+      editing: { by: user.uid, at: serverTimestamp() },
+    });
 
-      setPatient(data);
-      setForm(data);
+    setPatient(data);
+    setForm(data);
 
-      await loadFollowups();
+    // ✅ move loadFollowups logic here
+    const q = query(
+      collection(db, "followups"),
+      where("patientId", "==", id)
+    );
 
-      setLoading(false);
-    };
+    const snapFollow = await getDocs(q);
 
-    fetchPatient();
+    const followData = snapFollow.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
 
-    return async () => {
-      const ref = doc(db, "patients", id);
-      await updateDoc(ref, { editing: null });
-    };
-  }, [id]);
+    followData.sort(
+      (a, b) =>
+        (b.createdAt?.toDate() || 0) -
+        (a.createdAt?.toDate() || 0)
+    );
+
+    setFollowups(followData);
+
+    const balance = followData.reduce(
+      (sum, f) => sum + (Number(f.paid || 0) - Number(f.bill || 0)),
+      0
+    );
+
+    setTotalBalance(balance);
+
+    setLoading(false);
+  };
+
+  fetchPatient();
+
+  return async () => {
+    const ref = doc(db, "patients", id);
+    await updateDoc(ref, { editing: null });
+  };
+}, [id, user.uid, navigate, showToast]);
 
   const loadFollowups = async () => {
     const q = query(

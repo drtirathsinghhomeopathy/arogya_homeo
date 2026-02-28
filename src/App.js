@@ -32,7 +32,16 @@ export default function App() {
     return unsub;
   }, []);
 
-  if (loading) return <div className="p-4">Loading…</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-gray-500 font-medium">Loading…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

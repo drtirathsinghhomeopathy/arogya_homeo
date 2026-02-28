@@ -39,11 +39,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 to-green-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h2 className="text-center text-2xl sm:text-3xl font-bold text-green-800 mb-2">
+    <div className="min-h-screen flex items-center justify-center bg-secondary px-4 py-6">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-100 p-6 sm:p-8">
+        <h2 className="text-center text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
   DR. TIRATH SINGH’S
-  <span className="block text-lg sm:text-xl font-semibold tracking-wider text-green-600">
+  <span className="block text-lg sm:text-xl font-semibold tracking-wider text-primary">
     HOMOEOPATHIC CLINIC
   </span>
 </h2>
@@ -65,7 +65,7 @@ const Login = () => {
             <input
               type="email"
               placeholder="you@example.com"
-              className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
+              className="w-full rounded-lg border border-gray-300 px-3 py-3 sm:py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 min-h-[48px]"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -80,7 +80,7 @@ const Login = () => {
             <input
               type="password"
               placeholder="••••••••"
-              className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
+              className="w-full rounded-lg border border-gray-300 px-3 py-3 sm:py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 min-h-[48px]"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -91,7 +91,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-green-700 py-2.5 text-white font-semibold hover:bg-green-800 transition disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary py-3 sm:py-2.5 text-white font-semibold hover:bg-primary/90 transition disabled:opacity-60 min-h-[48px] touch-manipulation"
           >
             {loading && (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -109,7 +109,7 @@ const Login = () => {
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-500 py-2.5 text-white font-semibold hover:bg-red-600 transition disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-500 py-3 sm:py-2.5 text-white font-semibold hover:bg-red-600 transition disabled:opacity-60 min-h-[48px] touch-manipulation"
         >
           {loading && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

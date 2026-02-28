@@ -9,10 +9,10 @@ export default function Field({
   options = [],
   rows = 3,
 }) {
-  const baseClass = `w-full rounded border px-3 py-2 ${
+  const baseClass = `w-full rounded-lg border px-3 py-2.5 sm:py-2 text-base min-h-[44px] ${
     disabled
-      ? "bg-gray-100"
-      : "border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+      ? "bg-gray-100 text-gray-500"
+      : "border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
   }`;
 
   const renderField = () => {
@@ -43,7 +43,7 @@ export default function Field({
             value={value}
             onChange={onChange}
             disabled={disabled}
-            className={baseClass}
+            className={baseClass.replace("min-h-[44px]", "min-h-[80px]")}
           />
         );
 
@@ -64,7 +64,7 @@ export default function Field({
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       {renderField()}
     </div>
   );

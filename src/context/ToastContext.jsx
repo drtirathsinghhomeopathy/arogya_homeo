@@ -22,15 +22,15 @@ export function ToastProvider({ children }) {
         <div
           className={`fixed bottom-6 right-6 z-[9999]
             animate-fadeSlideUp scale-burst
-            px-4 py-2 rounded-lg text-white shadow-lg
+            px-4 py-3 rounded-lg text-white shadow-lg font-medium
             ${
               toast.type === TOAST_TYPES.SUCCESS
-                ? "bg-green-600"
+                ? "bg-primary"
                 : toast.type === TOAST_TYPES.ERROR
                 ? "bg-red-600"
                 : toast.type === TOAST_TYPES.WARNING
-                ? "bg-yellow-500"
-                : "bg-blue-600"
+                ? "bg-amber-500"
+                : "bg-gray-600"
             }
           `}
         >

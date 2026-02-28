@@ -52,7 +52,7 @@ export default function AppRoutes({ user }) {
         />
         <Route
           path="/patients"
-          element={user ? <PatientsList /> : <Navigate to="/login" />}
+          element={user ? <PatientsList user={user} /> : <Navigate to="/login" />}
         />
 
         <Route

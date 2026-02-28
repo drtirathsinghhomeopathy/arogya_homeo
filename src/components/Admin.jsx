@@ -1,9 +1,6 @@
-import React from 'react'
+import { ROLES } from "../constants/roles";
+import Dashboard from "./Dashboard";
 
-function Admin() {
-  return (
-    <div>Admin</div>
-  )
+export default function Admin() {
+  return <Dashboard role={ROLES.ADMIN} />;
 }
-
-export default Admin

@@ -192,7 +192,7 @@ export default function Dashboard({ role }) {
               </h2>
               <p className="text-sm text-gray-500">Recent visits today</p>
             </div>
-            <div className="p-6">
+            <div className="p-6 max-h-[400px] overflow-y-auto">
               {todayPatients.length === 0 ? (
                 <p className="text-sm text-gray-500">
                   No patients seen today.

@@ -113,30 +113,7 @@ export default function PatientEdit({ user }) {
     };
   }, [id, user.uid, navigate, showToast]);
 
-  const loadFollowups = async () => {
-    const q = query(collection(db, "followups"), where("patientId", "==", id));
 
-    const snapFollow = await getDocs(q);
-
-    const followData = snapFollow.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    }));
-
-    // Sort latest first
-    followData.sort(
-      (a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0),
-    );
-
-    setFollowups(followData);
-
-    const balance = followData.reduce(
-      (sum, f) => sum + (Number(f.paid || 0) - Number(f.bill || 0)),
-      0,
-    );
-
-    setTotalBalance(balance);
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;

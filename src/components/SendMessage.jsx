@@ -88,7 +88,7 @@ From Jagdeep
 
               {isSmsLong && (
                 <span className="text-red-500">
-                  SMS will be split into multiple messages
+                  SMS needs to split into multiple messages
                 </span>
               )}
             </div>

@@ -6,27 +6,29 @@ import {
   browserLocalPersistence,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics"; // ✅ New: Analytics added
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA76dLQTZ69G7Wl1fokXuz5dYPXno5UsJE",
-  authDomain: "arogyahomeo-fc0ff.firebaseapp.com",
-  projectId: "arogyahomeo-fc0ff",
-  storageBucket: "arogyahomeo-fc0ff.firebasestorage.app",
-  messagingSenderId: "126491644199",
-  appId: "1:126491644199:web:58b2452a3fcf8eb4cf5902",
-  measurementId: "G-498QMVKZ48",
+  apiKey: "AIzaSyDxEQ4sZ2ZIdfDGqKvpQx3R3jvoGFg87cw",
+  authDomain: "tirathsinghshomeopathicclinic.firebaseapp.com",
+  projectId: "tirathsinghshomeopathicclinic",
+  storageBucket: "tirathsinghshomeopathicclinic.firebasestorage.app",
+  messagingSenderId: "353963010777",
+  appId: "1:353963010777:web:2300f85ab6893808fdacc8",
+  measurementId: "G-9BD726QYW8"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// ✅ Create auth FIRST
+// Analytics
+export const analytics = getAnalytics(app);
+
+// Auth with persistence
 export const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error("Auth persistence error:", error);
+});
 
-// ✅ THEN set persistence
-setPersistence(auth, browserLocalPersistence)
-  .catch((error) => {
-    console.error("Auth persistence error:", error);
-  });
-
+// Firestore
 export const db = getFirestore(app);

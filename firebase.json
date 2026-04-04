@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "drTirathinghshomeopathicclinic",
+    "site": "tirathsinghshomeopathicclinic",
     "public": "build",
     "ignore": [
       "firebase.json",

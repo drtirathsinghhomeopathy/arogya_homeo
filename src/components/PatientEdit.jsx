@@ -47,6 +47,24 @@ export default function PatientEdit({ user }) {
     paid: "",
   });
 
+  const [selectedFollowup, setSelectedFollowup] = useState(null);
+
+useEffect(() => {
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") {
+      setSelectedFollowup(null);
+    }
+  };
+
+  if (selectedFollowup) {
+    window.addEventListener("keydown", handleKeyDown);
+  }
+
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown);
+  };
+}, [selectedFollowup]);
+
   useEffect(() => {
     const fetchPatient = async () => {
       const ref = doc(db, "patients", id);
@@ -381,6 +399,9 @@ export default function PatientEdit({ user }) {
                   <th className="text-left py-3 px-6 font-semibold text-gray-600">
                     Paid
                   </th>
+                  <th className="text-left py-3 px-6 font-semibold text-gray-600">
+                    View
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -407,6 +428,33 @@ export default function PatientEdit({ user }) {
                     </td>
                     <td className="py-3 px-6 font-medium text-gray-700">
                       ₹{f.paid}
+                    </td>
+                    <td className="py-3 px-6">
+                      <button
+                        onClick={() => setSelectedFollowup(f)}
+                        className="p-2 rounded-lg hover:bg-primary/10 text-primary transition"
+                        title="View Details"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -643,6 +691,122 @@ export default function PatientEdit({ user }) {
           </div>
         </div>
       )}
+
+      {/* VIEW FOLLOWUP MODAL */}
+{selectedFollowup && (
+  <div
+    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
+    onClick={() => setSelectedFollowup(null)}
+    
+  >
+    <div
+      className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-gray-100 overflow-hidden transform animate-scaleIn"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-primary/5 to-primary/10 flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800">
+            Follow-Up Details
+          </h2>
+          <p className="text-sm text-gray-500">
+            {selectedFollowup.createdAt?.toDate().toLocaleDateString()}
+          </p>
+        </div>
+
+        {/* Close Icon */}
+        <button
+          onClick={() => setSelectedFollowup(null)}
+          className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="p-6 space-y-4 text-sm text-gray-700">
+        {selectedFollowup.presentingComplains && (
+          <p>
+            <span className="font-semibold">Complains:</span>{" "}
+            {selectedFollowup.presentingComplains}
+          </p>
+        )}
+
+        {selectedFollowup.investigation && (
+          <p>
+            <span className="font-semibold">Investigation:</span>{" "}
+            {selectedFollowup.investigation}
+          </p>
+        )}
+
+        {selectedFollowup.medicalHistory && (
+          <p>
+            <span className="font-semibold">Medical History:</span>{" "}
+            {selectedFollowup.medicalHistory}
+          </p>
+        )}
+
+        {selectedFollowup.medicine && (
+          <p>
+            <span className="font-semibold">Medicine:</span>{" "}
+            {selectedFollowup.medicine}
+          </p>
+        )}
+
+        <div className="flex gap-6 pt-2">
+          <p>
+            <span className="font-semibold">Bill:</span> ₹
+            {selectedFollowup.bill}
+          </p>
+          <p>
+            <span className="font-semibold">Paid:</span> ₹
+            {selectedFollowup.paid}
+          </p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+        <button
+          onClick={() => setSelectedFollowup(null)}
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+    {/* ===== ANIMATIONS ===== */}
+      <style>{`
+        .animate-fadeIn {
+          animation: fadeIn .25s ease;
+        }
+        .animate-scaleIn {
+          animation: scaleIn .25s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0 }
+          to { opacity: 1 }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(.9); opacity: 0 }
+          to { transform: scale(1); opacity: 1 }
+        }
+      `}</style>
+  </div>
+)}
     </div>
   );
 }

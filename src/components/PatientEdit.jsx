@@ -48,11 +48,28 @@ export default function PatientEdit({ user }) {
   });
 
   const [selectedFollowup, setSelectedFollowup] = useState(null);
+  const [editingFollow, setEditingFollow] = useState(false);
+  const [editFollowForm, setEditFollowForm] = useState(null);
+  const [savingFollow, setSavingFollow] = useState(false);
+
+  const FOLLOWUP_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+  const isFollowupEditable = (f) => {
+    const created = f?.createdAt?.toDate?.();
+    if (!created) return false;
+    return Date.now() - created.getTime() < FOLLOWUP_EDIT_WINDOW_MS;
+  };
+
+  const closeFollowupView = () => {
+    setSelectedFollowup(null);
+    setEditingFollow(false);
+    setEditFollowForm(null);
+  };
 
 useEffect(() => {
   const handleKeyDown = (e) => {
     if (e.key === "Escape") {
-      setSelectedFollowup(null);
+      closeFollowupView();
     }
   };
 
@@ -181,6 +198,52 @@ useEffect(() => {
 
     // await loadFollowups();
     navigate(`/patients`); // Refresh the page to show the new follow-up and reset pagination
+  };
+
+  const handleEditFollowChange = (e) => {
+    const { name, value } = e.target;
+    setEditFollowForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdateFollowup = async () => {
+    if (!isFollowupEditable(selectedFollowup)) {
+      showToast("Edit window expired (24h after creation)", TOAST_TYPES.ERROR);
+      return;
+    }
+
+    setSavingFollow(true);
+
+    const updated = {
+      presentingComplains: editFollowForm.presentingComplains || "",
+      investigation: editFollowForm.investigation || "",
+      medicalHistory: editFollowForm.medicalHistory || "",
+      medicine: editFollowForm.medicine || "",
+      bill: Number(editFollowForm.bill || 0),
+      paid: Number(editFollowForm.paid || 0),
+    };
+
+    try {
+      const ref = doc(db, "followups", selectedFollowup.id);
+      await updateDoc(ref, { ...updated, updatedAt: serverTimestamp() });
+
+      const newList = followups.map((f) =>
+        f.id === selectedFollowup.id ? { ...f, ...updated } : f,
+      );
+      setFollowups(newList);
+      setTotalBalance(
+        newList.reduce(
+          (sum, f) => sum + (Number(f.paid || 0) - Number(f.bill || 0)),
+          0,
+        ),
+      );
+      setSelectedFollowup((prev) => ({ ...prev, ...updated }));
+      setEditingFollow(false);
+      showToast("Follow-up updated", TOAST_TYPES.SUCCESS);
+    } catch (err) {
+      showToast("Failed to update follow-up", TOAST_TYPES.ERROR);
+    } finally {
+      setSavingFollow(false);
+    }
   };
 
   useEffect(() => {
@@ -696,8 +759,8 @@ useEffect(() => {
 {selectedFollowup && (
   <div
     className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
-    onClick={() => setSelectedFollowup(null)}
-    
+    onClick={closeFollowupView}
+
   >
     <div
       className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-gray-100 overflow-hidden transform animate-scaleIn"
@@ -707,7 +770,7 @@ useEffect(() => {
       <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-primary/5 to-primary/10 flex justify-between items-center">
         <div>
           <h2 className="text-lg font-semibold text-gray-800">
-            Follow-Up Details
+            {editingFollow ? "Edit Follow-Up" : "Follow-Up Details"}
           </h2>
           <p className="text-sm text-gray-500">
             {selectedFollowup.createdAt?.toDate().toLocaleDateString()}
@@ -716,7 +779,7 @@ useEffect(() => {
 
         {/* Close Icon */}
         <button
-          onClick={() => setSelectedFollowup(null)}
+          onClick={closeFollowupView}
           className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition"
         >
           <svg
@@ -737,55 +800,148 @@ useEffect(() => {
       </div>
 
       {/* Content */}
-      <div className="p-6 space-y-4 text-sm text-gray-700">
-        {selectedFollowup.presentingComplains && (
-          <p>
-            <span className="font-semibold">Complains:</span>{" "}
-            {selectedFollowup.presentingComplains}
-          </p>
-        )}
-
-        {selectedFollowup.investigation && (
-          <p>
-            <span className="font-semibold">Investigation:</span>{" "}
-            {selectedFollowup.investigation}
-          </p>
-        )}
-
-        {selectedFollowup.medicalHistory && (
-          <p>
-            <span className="font-semibold">Medical History:</span>{" "}
-            {selectedFollowup.medicalHistory}
-          </p>
-        )}
-
-        {selectedFollowup.medicine && (
-          <p>
-            <span className="font-semibold">Medicine:</span>{" "}
-            {selectedFollowup.medicine}
-          </p>
-        )}
-
-        <div className="flex gap-6 pt-2">
-          <p>
-            <span className="font-semibold">Bill:</span> ₹
-            {selectedFollowup.bill}
-          </p>
-          <p>
-            <span className="font-semibold">Paid:</span> ₹
-            {selectedFollowup.paid}
-          </p>
+      {editingFollow ? (
+        <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+          <Field
+            label="Presenting Complains"
+            name="presentingComplains"
+            value={editFollowForm.presentingComplains}
+            onChange={handleEditFollowChange}
+          />
+          <Field
+            label="Investigation"
+            name="investigation"
+            value={editFollowForm.investigation}
+            onChange={handleEditFollowChange}
+          />
+          <Field
+            label="Medical History"
+            name="medicalHistory"
+            as="textarea"
+            rows={3}
+            value={editFollowForm.medicalHistory}
+            onChange={handleEditFollowChange}
+          />
+          <Field
+            label="Medicine"
+            name="medicine"
+            as="textarea"
+            rows={3}
+            value={editFollowForm.medicine}
+            onChange={handleEditFollowChange}
+          />
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <Field
+              label="Bill Amount (₹)"
+              name="bill"
+              type="number"
+              value={editFollowForm.bill}
+              onChange={handleEditFollowChange}
+            />
+            <Field
+              label="Paid Amount (₹)"
+              name="paid"
+              type="number"
+              value={editFollowForm.paid}
+              onChange={handleEditFollowChange}
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="p-6 space-y-4 text-sm text-gray-700">
+          {selectedFollowup.presentingComplains && (
+            <p>
+              <span className="font-semibold">Complains:</span>{" "}
+              {selectedFollowup.presentingComplains}
+            </p>
+          )}
+
+          {selectedFollowup.investigation && (
+            <p>
+              <span className="font-semibold">Investigation:</span>{" "}
+              {selectedFollowup.investigation}
+            </p>
+          )}
+
+          {selectedFollowup.medicalHistory && (
+            <p>
+              <span className="font-semibold">Medical History:</span>{" "}
+              {selectedFollowup.medicalHistory}
+            </p>
+          )}
+
+          {selectedFollowup.medicine && (
+            <p>
+              <span className="font-semibold">Medicine:</span>{" "}
+              {selectedFollowup.medicine}
+            </p>
+          )}
+
+          <div className="flex gap-6 pt-2">
+            <p>
+              <span className="font-semibold">Bill:</span> ₹
+              {selectedFollowup.bill}
+            </p>
+            <p>
+              <span className="font-semibold">Paid:</span> ₹
+              {selectedFollowup.paid}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
-        <button
-          onClick={() => setSelectedFollowup(null)}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
-        >
-          Close
-        </button>
+      <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-3">
+        {editingFollow ? (
+          <>
+            <button
+              onClick={() => setEditingFollow(false)}
+              disabled={savingFollow}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUpdateFollowup}
+              disabled={savingFollow}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+            >
+              {savingFollow ? "Saving..." : "Save Changes"}
+            </button>
+          </>
+        ) : (
+          <>
+            {isFollowupEditable(selectedFollowup) ? (
+              <button
+                onClick={() => {
+                  setEditFollowForm({
+                    presentingComplains:
+                      selectedFollowup.presentingComplains || "",
+                    investigation: selectedFollowup.investigation || "",
+                    medicalHistory: selectedFollowup.medicalHistory || "",
+                    medicine: selectedFollowup.medicine || "",
+                    bill: selectedFollowup.bill ?? "",
+                    paid: selectedFollowup.paid ?? "",
+                  });
+                  setEditingFollow(true);
+                }}
+                className="px-4 py-2 bg-white border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-lg font-medium transition"
+              >
+                Edit
+              </button>
+            ) : (
+              <span className="text-xs text-gray-400">
+                Editing locked (24h after creation)
+              </span>
+            )}
+            <button
+              onClick={closeFollowupView}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
+            >
+              Close
+            </button>
+          </>
+        )}
       </div>
     </div>
     {/* ===== ANIMATIONS ===== */}
